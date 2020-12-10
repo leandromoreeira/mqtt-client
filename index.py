@@ -3,6 +3,7 @@ import time, datetime, json, os, sys
 import argparse
 from decouple import config
 from random import randint
+from uuid import uuid1
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--topic", help = "Tópico utilizado para subscrever ou publicar")
@@ -68,6 +69,7 @@ elif SCENARIO == 'publisher':
     if not connected:
       client.connect(BROKER_HOST)
     message = { }
+    message['id'] = str(uuid1())
     message['timestamp'] = str(datetime.datetime.now())
     message['temperature'] = randint(25, 40)
     message['humidity'] = randint(15, 95)
