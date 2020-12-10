@@ -4,6 +4,8 @@ import argparse
 from decouple import config
 from random import randint
 from uuid import uuid1
+import boto3
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--topic", help = "Tópico utilizado para subscrever ou publicar")
@@ -13,6 +15,7 @@ BROKER_HOST = config('BROKER_HOST')
 BROKER_PORT = config('BROKER_PORT')
 BROKER_USER = config('BROKER_USER')
 BROKER_PASSWORD = config('BROKER_PASSWORD')
+DYNAMO_TABLE = config('DYNAMO_TABLE')
 TOPIC = parser.parse_args().topic
 SCENARIO = parser.parse_args().scenario
 connected = True
@@ -20,6 +23,14 @@ connected = True
 if TOPIC == None or SCENARIO == None:
   sys.exit('topic and scenario should be specified, use the args')
 
+def put_telemetry(message,dynamodb=None):
+  if not dynamodb:
+    dynamodb = boto3.resource('dynamodb')
+  table = dynamodb.Table(DYNAMO_TABLE)
+  response = table.put_item(
+       Item=message
+  )
+  return response
 
 def on_connect(mqttc, obj, flags, rc):
     print("rc: " + str(rc))
@@ -28,8 +39,10 @@ def on_connect(mqttc, obj, flags, rc):
 
 
 def on_message(mqttc, obj, msg):
-    print('New message on topic ' + msg.topic + ' using qos ' + str(msg.qos) + ' containing ' + str(msg.payload.decode('utf-8')))
-
+    msg_payload = str(msg.payload.decode('utf-8'))
+    print('New message on topic ' + msg.topic + ' using qos ' + str(msg.qos) + ' containing ' + msg_payload)
+    parsed_msg = json.loads(msg_payload)
+    put_telemetry(parsed_msg)
 
 def on_publish(mqttc, obj, mid):
     print("mid: " + str(mid))
@@ -74,6 +87,7 @@ elif SCENARIO == 'publisher':
     message['temperature'] = randint(25, 40)
     message['humidity'] = randint(15, 95)
     client.publish(TOPIC,json.dumps(message))
+    put_telemetry(message)
     print(json.dumps(message))
     time.sleep(10)
 
