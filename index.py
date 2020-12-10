@@ -57,10 +57,10 @@ client.on_subscribe = on_subscribe
 client.on_disconnect = on_disconnect
 
 
+client.username_pw_set(username=BROKER_USER,password=BROKER_PASSWORD)
 client.connect(BROKER_HOST)
 
 if SCENARIO == 'subscriber':
-  client.connect(BROKER_HOST)
   client.subscribe(TOPIC)
   client.loop_forever()
 
