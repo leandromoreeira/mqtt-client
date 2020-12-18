@@ -1,4 +1,5 @@
 import boto3
+from boto3.dynamodb.conditions import Key
 
 class Dynamo(object):
 
@@ -11,3 +12,7 @@ class Dynamo(object):
         Item=message
     )
     return response
+
+  def scan_messages(self):
+    response = self.table.scan()
+    return response['Items']

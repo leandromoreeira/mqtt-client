@@ -38,7 +38,7 @@ def publisher(mqtt, topic):
 
   message = { }
   message['id'] = str(uuid1())
-  message['p_time'] = time.time_ns()
+  message['sent_time'] = time.time_ns()
   message['temperature'] = randint(25, 40)
   message['humidity'] = randint(15, 95)
   mqtt.publish(topic,json.dumps(message))
