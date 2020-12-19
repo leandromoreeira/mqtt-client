@@ -1,4 +1,5 @@
 import time, json, os, sys, argparse, sched
+from datetime import datetime
 from random import randint
 from uuid import uuid1
 from dynamo import Dynamo
@@ -38,7 +39,7 @@ def publisher(mqtt, topic):
 
   message = { }
   message['id'] = str(uuid1())
-  message['sent_time'] = time.time_ns()
+  message['sent_time'] = str(datetime.now())
   message['temperature'] = randint(25, 40)
   message['humidity'] = randint(15, 95)
   mqtt.publish(topic,json.dumps(message))

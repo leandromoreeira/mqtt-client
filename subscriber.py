@@ -1,4 +1,5 @@
 import time, json, os, sys, argparse, sched
+from datetime import datetime
 from random import randint
 from uuid import uuid1
 from dynamo import Dynamo
@@ -34,7 +35,7 @@ def on_message(mqttc, obj, msg):
   msg_payload = str(msg.payload.decode('utf-8'))
   print('Nova mensagen no tópico ' + msg.topic + ' usando qos ' + str(msg.qos) + ' que contêm ' + msg_payload)
   parsed_msg = json.loads(msg_payload)
-  parsed_msg['received_time'] = time.time_ns()
+  parsed_msg['received_time'] = str(datetime.now())
   dynamodb.put_message(parsed_msg)
 
 
