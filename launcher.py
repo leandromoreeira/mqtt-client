@@ -37,6 +37,14 @@ response = client.run_instances(
       {
         'Key': 'seconds',
         'Value': str(seconds)
+      },
+      {
+        'Key': 'Name',
+        'Value': 'publisher-instance'
+      },
+      {
+        'Key': 'chaos',
+        'Value': 'no'
       }
     ]
     }
