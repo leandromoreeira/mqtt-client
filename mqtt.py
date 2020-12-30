@@ -4,14 +4,20 @@ import json, time
 class Mqtt(object):
 
 
-  def __init__(self, broker_host, broker_user, broker_passwd, topic, on_connect):
+  def __init__(self, broker_host, broker_user, broker_passwd, topic, on_connect=None):
     self.broker_host = broker_host
     self.broker_user = broker_user
     self.broker_passwd = broker_passwd
     self.topic = topic
-    self.on_connect = on_connect
+    self.on_connect_attr = on_connect
     self.client = None
     self.connected = False
+
+
+  def on_connect(self, mqttc, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
+    if rc == 0:
+      self.connected = True
 
 
   def on_disconnect(self, mqttc, obj, rc):
@@ -22,7 +28,7 @@ class Mqtt(object):
   def connect(self):
     self.client = mqtt.Client()
     self.client.username_pw_set(username=self.broker_user,password=self.broker_passwd)
-    self.client.on_connect = self.on_connect
+    self.client.on_connect = self.on_connect if self.on_connect_attr == None else self.on_connect_attr
     self.client.on_disconnect = self.on_disconnect
     self.client.connect(self.broker_host,keepalive=10)
 
