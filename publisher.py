@@ -6,7 +6,7 @@ from dynamo import Dynamo
 from mqtt import Mqtt
 
 dynamodb = None
-
+mqtt = None
 
 def validacao_parametros():
   parser = argparse.ArgumentParser()
@@ -34,18 +34,23 @@ def validacao_parametros():
   return response
 
 
-def publisher(mqtt, topic):
-  global dynamodb
+def on_connect(mqttc, userdata, flags, rc):
+  print("Connected with result code "+str(rc))
+  if rc == 0:
+    mqtt.connected = True
+
+
+def publisher():
 
   message = { }
   message['id'] = str(uuid1())
   message['sent_time'] = str(datetime.now())
   message['temperature'] = randint(25, 40)
   message['humidity'] = randint(15, 95)
-  mqtt.publish(topic,json.dumps(message))
+  mqtt.publish(json.dumps(message))
   dynamodb.put_message(message)
 
-  print('Enviando nova mensagem ' + str(json.dumps(message)) + ' no tópico ' + topic)
+  print('Enviando nova mensagem ' + str(json.dumps(message)) + ' no tópico ' + mqtt.topic)
 
 
 def schedule_it(scheduler,messages, duration, callable, *args):
@@ -55,16 +60,22 @@ def schedule_it(scheduler,messages, duration, callable, *args):
 
 
 def main():
-  # topic, scenario, host, user, password, dynamo_table_name, messages, timer = validacao_parametros()
+
   parametros = validacao_parametros()
-  mqtt = Mqtt(parametros['broker'],parametros['user'],parametros['password'])
-  global dynamodb
+
+  global dynamodb; global mqtt
+  mqtt = Mqtt(parametros['broker'],parametros['user'],parametros['password'],parametros['topic'],on_connect)
   dynamodb = Dynamo(parametros['dynamodb'])
 
   scheduler = sched.scheduler(time.time, time.sleep)
-  schedule_it(scheduler,int(parametros['messages']),int(parametros['seconds']),publisher,mqtt,parametros['topic'])
+  schedule_it(scheduler,int(parametros['messages']),int(parametros['seconds']),publisher)
+
+  mqtt.connect()
+  mqtt.client.loop_start()
+
   scheduler.run()
 
+  mqtt.client.loop_stop()
 
 if __name__ == '__main__':
     main()

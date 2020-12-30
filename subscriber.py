@@ -5,8 +5,6 @@ from uuid import uuid1
 from dynamo import Dynamo
 from mqtt import Mqtt
 
-dynamodb = None
-
 
 def validacao_parametros():
   parser = argparse.ArgumentParser()
@@ -31,7 +29,6 @@ def validacao_parametros():
 
 
 def on_message(mqttc, obj, msg):
-  global dynamodb
   msg_payload = str(msg.payload.decode('utf-8'))
   print('Nova mensagen no tópico ' + msg.topic + ' usando qos ' + str(msg.qos) + ' que contêm ' + msg_payload)
   parsed_msg = json.loads(msg_payload)
@@ -39,20 +36,27 @@ def on_message(mqttc, obj, msg):
   dynamodb.put_message(parsed_msg)
 
 
-def subscriber(mqtt, topic):
+def on_connect(mqttc, userdata, flags, rc):
+  print("Connected with result code "+str(rc))
+  if rc == 0 :
+    mqtt.connected = True
+    mqtt.subscribe()
+
+
+def subscriber():
+  mqtt.connect()
   mqtt.client.on_message = on_message
-  mqtt.subscribe(topic)
   mqtt.loop_forever()
 
 
 def main():
-  # topic, scenario, host, user, password, dynamo_table_name, messages, timer = validacao_parametros()
   parametros = validacao_parametros()
-  mqtt = Mqtt(parametros['broker'],parametros['user'],parametros['password'])
-  global dynamodb
+  global dynamodb ; global mqtt
+
+  mqtt = Mqtt(parametros['broker'],parametros['user'],parametros['password'],parametros['topic'],on_connect)
   dynamodb = Dynamo(parametros['dynamodb'])
 
-  subscriber(mqtt, parametros['topic'])
+  subscriber()
 
 
 if __name__ == '__main__':
