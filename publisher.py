@@ -76,6 +76,7 @@ def main():
   scheduler.run()
 
   mqtt.client.loop_stop()
+  mqtt.client.disconnect()
 
 if __name__ == '__main__':
     main()

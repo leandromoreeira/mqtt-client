@@ -21,10 +21,10 @@ class Mqtt(object):
 
   def connect(self):
     self.client = mqtt.Client()
-    # self.client.username_pw_set(username=self.broker_user,password=self.broker_passwd)
+    self.client.username_pw_set(username=self.broker_user,password=self.broker_passwd)
     self.client.on_connect = self.on_connect
     self.client.on_disconnect = self.on_disconnect
-    self.client.connect(self.broker_host)
+    self.client.connect(self.broker_host,keepalive=10)
 
 
   def publish(self,message):
@@ -40,4 +40,4 @@ class Mqtt(object):
 
 
   def loop_forever(self):
-    self.client.loop_forever()
+    self.client.loop_forever(retry_first_connection=True)
