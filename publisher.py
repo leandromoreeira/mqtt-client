@@ -6,14 +6,12 @@ from dynamo import Dynamo
 from mqtt import Mqtt
 
 dynamodb = None
-mqtt_chaos = None
-mqtt_control = None
+mqtt = None
 
 def validacao_parametros():
   parser = argparse.ArgumentParser()
   parser.add_argument("-t", "--topic", help = "Tópico utilizado para subscrever ou publicar")
-  parser.add_argument("-b1", "--broker1", help = "Endereço do Broker MQTT de Controle")
-  parser.add_argument("-b2", "--broker2", help = "Endereço do Broker MQTT do Caos")
+  parser.add_argument("-b", "--broker", help = "Endereço do Broker MQTT")
   parser.add_argument("-u", "--user", help = "Usuário do Broker MQTT")
   parser.add_argument("-p", "--password", help = "Senha do usuário do Broker MQTT")
   parser.add_argument("-d", "--dynamodb", help = "Nome da tablela do DynamoDB")
@@ -22,8 +20,7 @@ def validacao_parametros():
 
   response = {
     'topic': parser.parse_args().topic,
-    'broker1': parser.parse_args().broker1,
-    'broker2': parser.parse_args().broker2,
+    'broker': parser.parse_args().broker,
     'user': parser.parse_args().user,
     'password': parser.parse_args().password,
     'dynamodb': parser.parse_args().dynamodb,
@@ -44,11 +41,10 @@ def publisher():
   message['sent_time'] = str(datetime.now())
   message['temperature'] = randint(25, 40)
   message['humidity'] = randint(15, 95)
-  mqtt_chaos.publish(json.dumps(message))
-  mqtt_control.publish(json.dumps(message))
+  mqtt.publish(json.dumps(message))
   dynamodb.put_message(message)
 
-  print('Enviando nova mensagem ' + str(json.dumps(message)) + ' no tópico ' + mqtt_chaos.topic)
+  print('Enviando nova mensagem ' + str(json.dumps(message)) + ' no tópico ' + mqtt.topic)
 
 
 def schedule_it(scheduler,messages, duration, callable, *args):
@@ -61,26 +57,22 @@ def main():
 
   parametros = validacao_parametros()
 
-  global dynamodb; global mqtt_chaos; global mqtt_control
+  global dynamodb; global mqtt
 
-  mqtt_chaos = Mqtt(parametros['broker2'],parametros['user'],parametros['password'],parametros['topic'])
-  mqtt_control = Mqtt(parametros['broker1'],parametros['user'],parametros['password'],parametros['topic'])
+  mqtt = Mqtt(parametros['broker'],parametros['user'],parametros['password'],parametros['topic'])
   dynamodb = Dynamo(parametros['dynamodb'])
 
   scheduler = sched.scheduler(time.time, time.sleep)
   schedule_it(scheduler,int(parametros['messages']),int(parametros['seconds']),publisher)
 
-  mqtt_chaos.connect()
-  mqtt_control.connect()
-  mqtt_chaos.client.loop_start()
-  mqtt_control.client.loop_start()
+
+  mqtt.connect()
+  mqtt.client.loop_start()
 
   scheduler.run()
 
-  mqtt_chaos.client.loop_stop()
-  mqtt_control.client.loop_stop()
-  mqtt_control.client.disconnect()
-  mqtt_chaos.client.disconnect()
+  mqtt.client.loop_stop()
+  mqtt.client.disconnect()
 
 if __name__ == '__main__':
     main()
