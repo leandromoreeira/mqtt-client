@@ -4,19 +4,14 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 import os.path
-
-
 import pickle
 
 
-# validação dos parametros de entrada
 def validacao_parametros():
   parser = argparse.ArgumentParser()
-  parser.add_argument("-p", "--publisher", help = "Nome da tabela do publisher")
   parser.add_argument("-s", "--subscriber", help = "Nome da tabela do subscriber")
 
   response = {
-    'publisher': parser.parse_args().publisher,
     'subscriber': parser.parse_args().subscriber
   }
   for _,v in response.items():
@@ -26,16 +21,15 @@ def validacao_parametros():
   return response
 
 
-# validação das mensagens buscando as metricas
-def validacao_mensagens(pub_items, sub_items):
+def validacao_mensagens(sub_items):
 
   # validação da falta de algum elementos
-  count = 0
-  for a in pub_items:
-    for b in sub_items:
-      if a['id'] == b['id']:
-        count += 1
-  porcentagem = count * 100 / len(pub_items)
+  # count = 0
+  # for a in pub_items:
+  #   for b in sub_items:
+  #     if a['id'] == b['id']:
+  #       count += 1
+  # porcentagem = count * 100 / len(pub_items)
 
   # geração da diferença do horário enviado e recebido
   diferenca = []
@@ -53,7 +47,8 @@ def validacao_mensagens(pub_items, sub_items):
     diferenca.append(difference)
     mensagens.append(new)
 
-  return diferenca, mensagens, porcentagem
+  return diferenca, mensagens
+
 
 def inter_arrival_times(mesagens):
   timestamp = []
@@ -84,6 +79,8 @@ def inter_arrival_times(mesagens):
   fig.autofmt_xdate(rotation=45)
   fig.tight_layout()
   plt.show()
+
+
 def inter_arrival_rate(mesagens):
   mesagens.sort(key=lambda x:x['received_time'])
   count = []
@@ -103,11 +100,12 @@ def inter_arrival_rate(mesagens):
   xticks = []
   xticks.append(timestamp[0])
   for i in range(1,len(timestamp)-1):
-    if count[i] < 20:
-      xticks.append(timestamp[i])
+    if count[i] > 36:
+      if timestamp[i] - xticks[-1] > datetime.timedelta(seconds=120):
+        xticks.append(timestamp[i])
       # xticks.append(timestamp[i+1])
-    if i == int(len(timestamp)/2):
-      xticks.append(timestamp[i])
+    # if i == int(len(timestamp)/2):
+    #   xticks.append(timestamp[i])
   xticks.append(timestamp[-1])
 
   fig = plt.figure()
@@ -121,6 +119,8 @@ def inter_arrival_rate(mesagens):
   fig.autofmt_xdate(rotation=45)
   fig.tight_layout()
   plt.show()
+
+
 def inter_sending_rate(mesagens):
   sent_time = []
   for message in mesagens:
@@ -160,6 +160,8 @@ def inter_sending_rate(mesagens):
   fig.autofmt_xdate(rotation=45)
   fig.tight_layout()
   plt.show()
+
+
 def grafico_atraso(mensagens):
   mensagens.sort(key=lambda x:x['received_time'])
   difference  = []
@@ -171,8 +173,8 @@ def grafico_atraso(mensagens):
   xticks = []
   xticks.append(received_time[0])
   for i in range(len(difference)):
-    if difference[i] > 0.15:
-      if received_time[i] - xticks[-1] > datetime.timedelta(seconds=120):
+    if difference[i] > 2.5:
+      if received_time[i] - xticks[-1] > datetime.timedelta(seconds=180):
         xticks.append(received_time[i])
   xticks.append(received_time[-1])
 
@@ -192,13 +194,13 @@ def grafico_atraso(mensagens):
 def main():
 
   parametros = validacao_parametros()
-  if os.path.exists('dump/' + parametros['publisher']):
-    pub_items=pickle.load(open('dump/' + parametros['publisher'], 'rb'))
-  else:
-    pub_table = Dynamo(parametros['publisher'])
-    pub_items =  pub_table.scan_messages()
-    with open('dump/' + parametros['publisher'], 'wb') as fp:
-      pickle.dump(pub_items, fp)
+  # if os.path.exists('dump/' + parametros['publisher']):
+  #   pub_items=pickle.load(open('dump/' + parametros['publisher'], 'rb'))
+  # else:
+  #   pub_table = Dynamo(parametros['publisher'])
+  #   pub_items =  pub_table.scan_messages()
+  #   with open('dump/' + parametros['publisher'], 'wb') as fp:
+  #     pickle.dump(pub_items, fp)
 
   if os.path.exists('dump/' + parametros['subscriber']):
     sub_items=pickle.load(open('dump/' + parametros['subscriber'], 'rb'))
@@ -208,16 +210,16 @@ def main():
     with open('dump/' + parametros['subscriber'], 'wb') as fp:
       pickle.dump(sub_items, fp)
 
-  diferenca, mensagens, porcentagem = validacao_mensagens(pub_items, sub_items)
+  diferenca, mensagens= validacao_mensagens( sub_items)
 
   #inter_arrival_times(mensagens)
   inter_arrival_rate(mensagens)
-  inter_sending_rate(pub_items)
+  # inter_sending_rate(pub_items)
   grafico_atraso( mensagens)
 
   #impressão dos resultados optidos
-  print("Foi enviado "+ str(len(pub_items)) + " mensagens")
-  print("Foram recebidos " + str(porcentagem) + "% das mensagens!")
+  print("Foi recebido "+ str(len(sub_items)) + " mensagens")
+  # print("Foram recebidos " + str(porcentagem) + "% das mensagens!")
   print('A média aritmética dos atrasos foram ' + str(statistics.mean(diferenca)) +' segundos')
   print('A mediana dos atrasos foram ' + str(statistics.median(diferenca)) +' segundos')
   print('A variância populacional dos atrasos foram ' + str(statistics.pvariance(diferenca)) +' segundos')
