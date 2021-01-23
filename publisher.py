@@ -1,6 +1,5 @@
 import time, json, os, sys, argparse, sched
 from datetime import datetime
-from datetime import timezone
 from random import randint
 from uuid import uuid1
 from logs import Logs
@@ -39,7 +38,7 @@ def validacao_parametros():
 
 def publisher():
 
-  date = datetime.now(timezone.utc)
+  date = datetime.now()
 
   message = { }
   message['id'] = str(uuid1())
