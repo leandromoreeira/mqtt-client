@@ -171,8 +171,8 @@ def grafico_atraso(mensagens):
   xticks = []
   xticks.append(received_time[0])
   for i in range(len(difference)):
-    if difference[i] > 5:
-      if received_time[i] - xticks[-1] > datetime.timedelta(seconds=60):
+    if difference[i] > 0.15:
+      if received_time[i] - xticks[-1] > datetime.timedelta(seconds=120):
         xticks.append(received_time[i])
   xticks.append(received_time[-1])
 
@@ -211,9 +211,9 @@ def main():
   diferenca, mensagens, porcentagem = validacao_mensagens(pub_items, sub_items)
 
   #inter_arrival_times(mensagens)
-  #inter_arrival_rate(mensagens)
-  #inter_sending_rate(pub_items)
-  #grafico_atraso( mensagens)
+  inter_arrival_rate(mensagens)
+  inter_sending_rate(pub_items)
+  grafico_atraso( mensagens)
 
   #impressão dos resultados optidos
   print("Foi enviado "+ str(len(pub_items)) + " mensagens")
