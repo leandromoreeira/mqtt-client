@@ -2,10 +2,10 @@ import time, json, os, sys, argparse, sched
 from datetime import datetime
 from random import randint
 from uuid import uuid1
-from dynamo import Dynamo
+from logs import Logs
 from mqtt import Mqtt
 
-dynamodb = None
+logs = None
 
 
 def validacao_parametros():
@@ -14,7 +14,8 @@ def validacao_parametros():
   parser.add_argument("-b", "--broker", help = "Endereço do Broker MQTT")
   parser.add_argument("-u", "--user", help = "Usuário do Broker MQTT")
   parser.add_argument("-p", "--password", help = "Senha do usuário do Broker MQTT")
-  parser.add_argument("-d", "--dynamodb", help = "Nome da tablela do DynamoDB")
+  parser.add_argument("-g", "--group", help = "group")
+  parser.add_argument("-ss", "--stream", help = "stream")
   parser.add_argument("-m", "--messages", help = "Quantidade de mensagens que deve ser eviada por conexão")
   parser.add_argument("-s", "--seconds", help = "Tempo em segundos que o envio da mensagens deve ser feito")
 
@@ -23,7 +24,8 @@ def validacao_parametros():
     'broker': parser.parse_args().broker,
     'user': parser.parse_args().user,
     'password': parser.parse_args().password,
-    'dynamodb': parser.parse_args().dynamodb,
+    'group': parser.parse_args().group,
+    'stream': parser.parse_args().stream,
     'messages': parser.parse_args().messages,
     'seconds': parser.parse_args().seconds
   }
@@ -35,15 +37,16 @@ def validacao_parametros():
 
 
 def publisher(mqtt, topic):
-  global dynamodb
+  global logs
+  date = datetime.now()
 
   message = { }
   message['id'] = str(uuid1())
-  message['sent_time'] = str(datetime.now())
+  message['sent_time'] = str(date)
   message['temperature'] = randint(25, 40)
   message['humidity'] = randint(15, 95)
   mqtt.publish(topic,json.dumps(message))
-  dynamodb.put_message(message)
+  logs.put_log_event(int(date.timestamp()*1000),str(json.dumps(message)))
 
   print('Enviando nova mensagem ' + str(json.dumps(message)) + ' no tópico ' + topic)
 
@@ -58,8 +61,8 @@ def main():
   # topic, scenario, host, user, password, dynamo_table_name, messages, timer = validacao_parametros()
   parametros = validacao_parametros()
   mqtt = Mqtt(parametros['broker'],parametros['user'],parametros['password'])
-  global dynamodb
-  dynamodb = Dynamo(parametros['dynamodb'])
+  global logs
+  logs = Logs(parametros['group'],parametros['stream'])
 
   scheduler = sched.scheduler(time.time, time.sleep)
   schedule_it(scheduler,int(parametros['messages']),int(parametros['seconds']),publisher,mqtt,parametros['topic'])
