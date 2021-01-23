@@ -1,5 +1,7 @@
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
+
 
 class Dynamo(object):
 
@@ -8,10 +10,14 @@ class Dynamo(object):
     self.table = self.dynamodb.Table(table_name)
 
   def put_message(self,message):
-    response = self.table.put_item(
-        Item=message
-    )
-    return response
+    try:
+      response = self.table.put_item(
+          Item=message,
+          ConditionExpression='attribute_not_exists(id)'
+      )
+      return response
+    except:
+      return None
 
   def scan_messages(self):
     response = self.table.scan()
