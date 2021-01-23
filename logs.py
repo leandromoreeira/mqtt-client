@@ -39,33 +39,41 @@ class Logs(object):
 
 
   def put_log_event(self,timestamp,message):
-    try:
-      if self.sequence_token == None:
-        response = self.client.put_log_events(
-            logGroupName=self.log_group,
-            logStreamName=self.log_stream,
-            logEvents=[
-                {
-                    'timestamp': timestamp,
-                    'message': message
-                },
-            ],
-        )
+    for i in range(10):
+      try:
+        if self.sequence_token == None:
+          response = self.client.put_log_events(
+              logGroupName=self.log_group,
+              logStreamName=self.log_stream,
+              logEvents=[
+                  {
+                      'timestamp': timestamp,
+                      'message': message
+                  },
+              ],
+          )
+        else:
+          response = self.client.put_log_events(
+              logGroupName=self.log_group,
+              logStreamName=self.log_stream,
+              logEvents=[
+                  {
+                      'timestamp': timestamp,
+                      'message': message
+                  },
+              ],
+              sequenceToken=self.sequence_token
+          )
+        self.sequence_token = response['nextSequenceToken']
+      except ClientError as e:
+        print("Falha ao gravar o log, tentando mais " + str(10-i) + " vezes")
+        if e.response['Error']['Code'] == 'InvalidSequenceTokenException':
+          self.sequence_token = self.describe_log_streams()
+        else:
+          print("Unexpected error: %s" % e)
       else:
-        response = self.client.put_log_events(
-            logGroupName=self.log_group,
-            logStreamName=self.log_stream,
-            logEvents=[
-                {
-                    'timestamp': timestamp,
-                    'message': message
-                },
-            ],
-            sequenceToken=self.sequence_token
-        )
-      self.sequence_token = response['nextSequenceToken']
-    except ClientError as e:
-      print("Unexpected error: %s" % e)
+        print("Log inserido com sucesso!")
+        break
 
 
   def describe_log_streams(self):
